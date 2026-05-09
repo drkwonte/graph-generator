@@ -1,7 +1,6 @@
 import { InlineMath } from "react-katex"
 
 import { PRINT_MARK_LEGEND } from "@/constants/printDom"
-import { normalizeLatexForKatex } from "@/lib/normalizeLatexForKatex"
 
 export type GraphLegendItem = {
   color: string
@@ -28,7 +27,7 @@ export function GraphLegend({ items }: GraphLegendProps) {
             aria-hidden="true"
           />
           <span className="text-muted-foreground">
-            <InlineMath math={normalizeLatexForKatex(it.latex)} />
+            <InlineMath math={it.latex} />
           </span>
         </div>
       ))}
