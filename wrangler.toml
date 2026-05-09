@@ -1,0 +1,7 @@
+name = "snapgraph"
+compatibility_date = "2026-05-08"
+
+[vars]
+# Set GEMINI_API_KEY in your local environment or Cloudflare dashboard.
+# Example (PowerShell):
+#   $env:GEMINI_API_KEY="..."
