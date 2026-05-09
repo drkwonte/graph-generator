@@ -21,12 +21,15 @@ import { useDocumentSEO } from "@/hooks/useDocumentSEO"
 
 const CONVERT_BUTTON_TEXT = "선택한 수식 그래프로 변환" as const
 const GRAPH_PANEL_TITLE = "그래프" as const
+const NEW_GRAPH_BUTTON_TEXT = "새 그래프" as const
+const EMPTY_SELECTION: number[] = []
 
 export function HomePage() {
   useDocumentSEO(DEFAULT_DOCUMENT_TITLE, DEFAULT_META_DESCRIPTION)
 
   const { analyzeImage, data, errorMessage, status, reset } = useGeminiAnalysis()
   const [imageBlob, setImageBlob] = React.useState<Blob | null>(null)
+  const [uploaderKey, setUploaderKey] = React.useState<number>(0)
   const [selectedFormulaIndices, setSelectedFormulaIndices] = React.useState<
     number[]
   >([])
@@ -42,17 +45,29 @@ export function HomePage() {
     return Array.from({ length: count }, (_, idx) => idx)
   }, [])
 
+  const resetForNewGraph = React.useCallback(() => {
+    setImageBlob(null)
+    reset()
+    setSelectedFormulaIndices(EMPTY_SELECTION)
+    setGraphFormulas(null)
+    setUploaderKey((v) => v + 1)
+  }, [reset])
+
   return (
     <div className="space-y-6">
-      <div className="space-y-2">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-balance text-2xl font-normal tracking-tight">
           수식 이미지를 올리면 그래프로 변환합니다
         </h1>
+        <Button type="button" variant="outline" onClick={resetForNewGraph}>
+          {NEW_GRAPH_BUTTON_TEXT}
+        </Button>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-4">
           <ImageUploader
+            key={uploaderKey}
             onReady={({ compressedBlob }) => {
               setImageBlob(compressedBlob)
               reset()
