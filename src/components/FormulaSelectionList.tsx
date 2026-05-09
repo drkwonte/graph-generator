@@ -4,6 +4,7 @@ import "katex/dist/katex.min.css"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Separator } from "@/components/ui/separator"
 import type { GeminiFormula } from "@/types/gemini"
+import { sanitizeLatex } from "@/lib/sanitizeLatex"
 
 const EMPTY_TEXT = "아직 인식된 수식이 없습니다." as const
 
@@ -43,7 +44,7 @@ export function FormulaSelectionList({
                   {f.type ? ` · ${f.type}` : ""}
                 </div>
                 <div className="overflow-x-auto">
-                  <BlockMath math={f.displayLatex || f.latex} />
+                  <BlockMath math={sanitizeLatex(f.displayLatex || f.latex)} />
                 </div>
               </div>
 

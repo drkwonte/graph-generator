@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Separator } from "@/components/ui/separator"
 import type { GeminiFormula } from "@/types/gemini"
+import { sanitizeLatex } from "@/lib/sanitizeLatex"
 
 const TITLE = "인식된 수식을 확인해 주세요" as const
 const SUBTITLE =
@@ -85,7 +86,7 @@ export function FormulaConfirmation({
                       {f.type ? ` · ${f.type}` : ""}
                     </div>
                     <div className="overflow-x-auto">
-                      <BlockMath math={f.displayLatex || f.latex} />
+                      <BlockMath math={sanitizeLatex(f.displayLatex || f.latex)} />
                     </div>
                     {!f.isGraphable ? (
                       <div className="text-xs text-muted-foreground">
