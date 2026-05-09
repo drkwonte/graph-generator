@@ -13,6 +13,8 @@
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.2.8",
+    "@emnapi/core": "1.10.0",
+    "@emnapi/runtime": "1.10.0",
     "canvg": "^4.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -36,7 +38,6 @@
     "@types/node": "^24.12.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@types/react-router-dom": "^5.3.3",
     "@vitejs/plugin-react": "^6.0.1",
     "concurrently": "^9.2.1",
     "eslint": "^10.2.1",
