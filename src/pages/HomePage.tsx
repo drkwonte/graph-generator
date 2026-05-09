@@ -59,9 +59,16 @@ export function HomePage() {
         <h1 className="text-balance text-2xl font-normal tracking-tight">
           수식 이미지를 올리면 그래프로 변환합니다
         </h1>
-        <Button type="button" variant="outline" onClick={resetForNewGraph}>
-          {NEW_GRAPH_BUTTON_TEXT}
-        </Button>
+        {graphFormulas?.length ? (
+          <Button
+            type="button"
+            variant="default"
+            onClick={resetForNewGraph}
+            className="shadow-sm"
+          >
+            {NEW_GRAPH_BUTTON_TEXT}
+          </Button>
+        ) : null}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
