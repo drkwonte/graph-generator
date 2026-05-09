@@ -1,5 +1,8 @@
 export const GRAPH_DEFAULT_HEIGHT_PX = 420 as const
 
+/** Same value as function-plot `utils.infinity()` — spans vertical segments across the y domain. */
+export const FUNCTION_PLOT_AXIS_INFINITY = 9007199254740991 as const
+
 export const PRINT_GRAPH_BUTTON_TEXT = "그래프 인쇄" as const
 
 export const GRAPH_COLORS = [

@@ -43,7 +43,10 @@ function injectLightSvgStyle(svg: SVGSVGElement) {
 export type GraphFunction = {
   fn: string
   color?: string
-  fnType?: "linear" | "implicit"
+  fnType?: "linear" | "implicit" | "points"
+  /** Required when `fnType` is `"points"` (two or more `[x, y]` samples in math space). */
+  points?: [number, number][]
+  skipBoundsCheck?: boolean
 }
 
 export type GraphRendererProps = {
@@ -84,7 +87,9 @@ type FunctionPlotDatum = {
   fn: string
   color?: string
   graphType?: "polyline"
-  fnType?: "linear" | "implicit"
+  fnType?: "linear" | "implicit" | "points"
+  points?: [number, number][]
+  skipBoundsCheck?: boolean
 }
 
 type FunctionPlotOptions = {
@@ -149,12 +154,19 @@ export function GraphRenderer({
           width,
           height: computedHeightPx,
           grid: true,
-          data: functions.map((f, idx) => ({
-            fn: f.fn,
-            color: f.color ?? GRAPH_COLORS[idx % GRAPH_COLORS.length],
-            graphType: "polyline",
-            fnType: f.fnType ?? "linear",
-          })),
+          data: functions.map((f, idx) => {
+            const datum: FunctionPlotDatum = {
+              fn: f.fn,
+              color: f.color ?? GRAPH_COLORS[idx % GRAPH_COLORS.length],
+              graphType: "polyline",
+              fnType: f.fnType ?? "linear",
+            }
+            if (f.fnType === "points" && f.points?.length) {
+              datum.points = f.points
+              datum.skipBoundsCheck = f.skipBoundsCheck ?? true
+            }
+            return datum
+          }),
         })
 
         const svg = el.querySelector("svg")

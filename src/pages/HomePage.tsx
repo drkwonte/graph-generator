@@ -14,7 +14,11 @@ import { normalizeFunctionNotation } from "@/lib/normalizeFunctionNotation"
 import { GRAPH_VIEW_WIDTH_PERCENT } from "@/constants/ui"
 import { useGraphExport } from "@/hooks/useGraphExport"
 import { useGraphPrint } from "@/hooks/useGraphPrint"
-import { GRAPH_COLORS, PRINT_GRAPH_BUTTON_TEXT } from "@/constants/graph"
+import {
+  FUNCTION_PLOT_AXIS_INFINITY,
+  GRAPH_COLORS,
+  PRINT_GRAPH_BUTTON_TEXT,
+} from "@/constants/graph"
 import { PRINT_MARK_EXPORT, PRINT_MARK_GRAPH_WRAP } from "@/constants/printDom"
 import { DEFAULT_DOCUMENT_TITLE, DEFAULT_META_DESCRIPTION } from "@/constants/seo"
 import { useDocumentSEO } from "@/hooks/useDocumentSEO"
@@ -62,6 +66,41 @@ export function HomePage() {
     setGraphFormulas(null)
     setUploaderKey((v) => v + 1)
   }, [reset])
+
+  const toGraphFunction = React.useCallback(
+    (formula: GeminiFormula, idx: number) => {
+      const color = GRAPH_COLORS[idx % GRAPH_COLORS.length]
+      const verticalX =
+        parseVerticalLineX(formula.functionNotation) ??
+        parseVerticalLineX(formula.displayLatex) ??
+        parseVerticalLineX(formula.latex)
+
+      if (verticalX !== null) {
+        const span = FUNCTION_PLOT_AXIS_INFINITY
+        return {
+          fnType: "points" as const,
+          fn: `x=${verticalX}`,
+          points: [
+            [verticalX, -span],
+            [verticalX, span],
+          ] as [number, number][],
+          color,
+        }
+      }
+
+      if (!formula.isGraphable) return null
+
+      const normalized = normalizeFunctionNotation(formula.functionNotation)
+      if (!String(normalized ?? "").trim()) return null
+
+      return {
+        fnType: "linear" as const,
+        fn: normalized,
+        color,
+      }
+    },
+    [],
+  )
 
   return (
     <div className="space-y-6">
@@ -183,36 +222,17 @@ export function HomePage() {
                     <GraphRenderer
                       containerRef={graphSvgContainerRef}
                       functions={graphFormulas
-                        .filter((f) => f.isGraphable)
-                        .map((f, idx) => {
-                          const color = GRAPH_COLORS[idx % GRAPH_COLORS.length]
-                          const verticalX =
-                            parseVerticalLineX(f.functionNotation) ??
-                            parseVerticalLineX(f.displayLatex) ??
-                            parseVerticalLineX(f.latex)
-
-                          if (verticalX !== null) {
-                            return {
-                              fnType: "implicit" as const,
-                              fn: `x-(${verticalX})`,
-                              color,
-                            }
-                          }
-
-                          return {
-                            fnType: "linear" as const,
-                            fn: normalizeFunctionNotation(f.functionNotation),
-                            color,
-                          }
-                        })}
+                        .map(toGraphFunction)
+                        .filter((v) => v !== null)}
                     />
                   </div>
 
                   <div className="w-full px-2 pb-1">
                     <GraphLegend
                       items={graphFormulas
-                        .filter((f) => f.isGraphable)
-                        .map((f, idx) => ({
+                        .map((f, idx) => ({ f, idx, item: toGraphFunction(f, idx) }))
+                        .filter((v) => v.item !== null)
+                        .map(({ f, idx }) => ({
                           color: GRAPH_COLORS[idx % GRAPH_COLORS.length],
                           latex:
                             [
