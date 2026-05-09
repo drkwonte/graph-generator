@@ -43,6 +43,7 @@ function injectLightSvgStyle(svg: SVGSVGElement) {
 export type GraphFunction = {
   fn: string
   color?: string
+  fnType?: "linear" | "implicit"
 }
 
 export type GraphRendererProps = {
@@ -83,6 +84,7 @@ type FunctionPlotDatum = {
   fn: string
   color?: string
   graphType?: "polyline"
+  fnType?: "linear" | "implicit"
 }
 
 type FunctionPlotOptions = {
@@ -151,6 +153,7 @@ export function GraphRenderer({
             fn: f.fn,
             color: f.color ?? GRAPH_COLORS[idx % GRAPH_COLORS.length],
             graphType: "polyline",
+            fnType: f.fnType ?? "linear",
           })),
         })
 

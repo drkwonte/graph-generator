@@ -23,6 +23,16 @@ const CONVERT_BUTTON_TEXT = "선택한 수식 그래프로 변환" as const
 const GRAPH_PANEL_TITLE = "그래프" as const
 const NEW_GRAPH_BUTTON_TEXT = "새 그래프" as const
 const EMPTY_SELECTION: number[] = []
+const VERTICAL_LINE_REGEX = /x\s*=\s*([+-]?\d+(?:\.\d+)?)/i
+
+function parseVerticalLineX(value: string | null | undefined): number | null {
+  const s = String(value ?? "").trim()
+  if (!s) return null
+  const m = VERTICAL_LINE_REGEX.exec(s)
+  if (!m?.[1]) return null
+  const x = Number(m[1])
+  return Number.isFinite(x) ? x : null
+}
 
 export function HomePage() {
   useDocumentSEO(DEFAULT_DOCUMENT_TITLE, DEFAULT_META_DESCRIPTION)
@@ -174,10 +184,27 @@ export function HomePage() {
                       containerRef={graphSvgContainerRef}
                       functions={graphFormulas
                         .filter((f) => f.isGraphable)
-                        .map((f, idx) => ({
-                          fn: normalizeFunctionNotation(f.functionNotation),
-                          color: GRAPH_COLORS[idx % GRAPH_COLORS.length],
-                        }))}
+                        .map((f, idx) => {
+                          const color = GRAPH_COLORS[idx % GRAPH_COLORS.length]
+                          const verticalX =
+                            parseVerticalLineX(f.functionNotation) ??
+                            parseVerticalLineX(f.displayLatex) ??
+                            parseVerticalLineX(f.latex)
+
+                          if (verticalX !== null) {
+                            return {
+                              fnType: "implicit" as const,
+                              fn: `x-(${verticalX})`,
+                              color,
+                            }
+                          }
+
+                          return {
+                            fnType: "linear" as const,
+                            fn: normalizeFunctionNotation(f.functionNotation),
+                            color,
+                          }
+                        })}
                     />
                   </div>
 
