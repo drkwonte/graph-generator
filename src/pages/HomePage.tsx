@@ -187,7 +187,12 @@ export function HomePage() {
                         .filter((f) => f.isGraphable)
                         .map((f, idx) => ({
                           color: GRAPH_COLORS[idx % GRAPH_COLORS.length],
-                          latex: f.displayLatex || f.latex || f.functionNotation,
+                          latex:
+                            [
+                              f.displayLatex ?? "",
+                              f.latex ?? "",
+                              f.functionNotation ?? "",
+                            ].find((s) => String(s).trim().length > 0) ?? "",
                         }))}
                     />
                   </div>

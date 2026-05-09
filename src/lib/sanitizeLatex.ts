@@ -36,8 +36,8 @@ function stripMathModeDelimiters(raw: string): string {
  * We keep this intentionally conservative: fix the common "split control sequence"
  * corruption (e.g. "\l og", "\f rac") and normalize a few Unicode edge cases.
  */
-export function sanitizeLatex(input: string): string {
-  let t = input.trim()
+export function sanitizeLatex(input: string | null | undefined): string {
+  let t = String(input ?? "").trim()
   const backtick = OUTER_BACKTICKS_REGEX.exec(t)
   if (backtick) t = backtick[1].trim()
 

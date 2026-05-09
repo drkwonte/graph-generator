@@ -18,8 +18,8 @@ function isValidKatexString(tex: string, displayMode: boolean): boolean {
   }
 }
 
-function chooseBestLatex(raw: string, displayMode: boolean): string {
-  const trimmed = raw.trim()
+function chooseBestLatex(raw: string | null | undefined, displayMode: boolean): string {
+  const trimmed = String(raw ?? "").trim()
   if (!trimmed) return ""
 
   if (isValidKatexString(trimmed, displayMode)) return trimmed
@@ -39,7 +39,7 @@ function renderKatexHtml(tex: string, displayMode: boolean): string {
 }
 
 type KatexSpanProps = {
-  math: string
+  math: string | null | undefined
   displayMode: boolean
   className?: string
 }
@@ -58,10 +58,10 @@ function KatexSpan({ math, displayMode, className }: KatexSpanProps) {
   )
 }
 
-export function SafeBlockMath({ math }: { math: string }) {
+export function SafeBlockMath({ math }: { math: string | null | undefined }) {
   return <KatexSpan math={math} displayMode />
 }
 
-export function SafeInlineMath({ math }: { math: string }) {
+export function SafeInlineMath({ math }: { math: string | null | undefined }) {
   return <KatexSpan math={math} displayMode={false} />
 }
