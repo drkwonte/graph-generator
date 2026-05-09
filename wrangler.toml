@@ -1,5 +1,6 @@
 name = "snapgraph"
 compatibility_date = "2026-05-08"
+pages_build_output_dir = "dist"
 
 [vars]
 # Set GEMINI_API_KEY in your local environment or Cloudflare dashboard.
