@@ -58,6 +58,17 @@ type CloudflarePagesEnv = {
   GEMINI_API_KEY?: string
 }
 
+const JSON_HEADERS = { "content-type": "application/json" } as const
+const GEMINI_UPSTREAM_ERROR_STATUS = 502 as const
+const GEMINI_RATE_LIMIT_STATUS = 429 as const
+
+type ApiErrorBody = {
+  error: string
+  status?: number
+  code?: string
+  retryAfterSeconds?: number
+}
+
 function toBase64(bytes: Uint8Array) {
   let binary = ""
   for (const byte of bytes) binary += String.fromCharCode(byte)
@@ -92,7 +103,7 @@ export const onRequestPost: PagesFunction<CloudflarePagesEnv> = async (ctx) => {
       JSON.stringify({
         error: "Missing GEMINI_API_KEY environment variable.",
       }),
-      { status: 500, headers: { "content-type": "application/json" } },
+      { status: 500, headers: JSON_HEADERS },
     )
   }
 
@@ -100,7 +111,7 @@ export const onRequestPost: PagesFunction<CloudflarePagesEnv> = async (ctx) => {
   if (!contentType.includes("multipart/form-data")) {
     return new Response(
       JSON.stringify({ error: "Expected multipart/form-data request." }),
-      { status: 400, headers: { "content-type": "application/json" } },
+      { status: 400, headers: JSON_HEADERS },
     )
   }
 
@@ -109,7 +120,7 @@ export const onRequestPost: PagesFunction<CloudflarePagesEnv> = async (ctx) => {
   if (!(image instanceof File)) {
     return new Response(JSON.stringify({ error: "Missing image file." }), {
       status: 400,
-      headers: { "content-type": "application/json" },
+      headers: JSON_HEADERS,
     })
   }
 
@@ -154,15 +165,34 @@ export const onRequestPost: PagesFunction<CloudflarePagesEnv> = async (ctx) => {
   })
 
   if (!geminiRes.ok) {
-    const text = await geminiRes.text().catch(() => "")
-    return new Response(
-      JSON.stringify({
-        error: "Gemini request failed.",
-        status: geminiRes.status,
-        details: text || null,
-      }),
-      { status: 502, headers: { "content-type": "application/json" } },
-    )
+    const retryAfterHeader = geminiRes.headers.get("retry-after")
+    const retryAfterSeconds =
+      retryAfterHeader && /^\d+$/.test(retryAfterHeader)
+        ? Number(retryAfterHeader)
+        : undefined
+
+    const body: ApiErrorBody =
+      geminiRes.status === GEMINI_RATE_LIMIT_STATUS
+        ? {
+            error:
+              "Gemini API quota/rate-limit exceeded. Please retry later or check billing/quota.",
+            status: geminiRes.status,
+            code: "GEMINI_RATE_LIMIT",
+            retryAfterSeconds,
+          }
+        : {
+            error: "Gemini request failed.",
+            status: geminiRes.status,
+            code: "GEMINI_UPSTREAM_ERROR",
+          }
+
+    // Preserve upstream status when it gives more actionable info (e.g. 429).
+    const status =
+      geminiRes.status === GEMINI_RATE_LIMIT_STATUS
+        ? GEMINI_RATE_LIMIT_STATUS
+        : GEMINI_UPSTREAM_ERROR_STATUS
+
+    return new Response(JSON.stringify(body), { status, headers: JSON_HEADERS })
   }
 
   const geminiResponseJson = await geminiRes.json()
@@ -170,7 +200,7 @@ export const onRequestPost: PagesFunction<CloudflarePagesEnv> = async (ctx) => {
   const parsed = parseGeminiJson(jsonText)
 
   return new Response(JSON.stringify(parsed), {
-    headers: { "content-type": "application/json" },
+    headers: JSON_HEADERS,
   })
 }
 

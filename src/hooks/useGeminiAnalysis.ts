@@ -4,6 +4,10 @@ import type { GeminiAnalysisResponse } from "@/types/gemini"
 
 type GeminiAnalysisStatus = "idle" | "loading" | "success" | "error"
 
+const FALLBACK_ERROR_MESSAGE = "이미지 분석에 실패했습니다." as const
+const RATE_LIMIT_ERROR_MESSAGE =
+  "현재 AI 사용량(쿼터/요청 제한)을 초과했습니다. 잠시 후 다시 시도해 주세요." as const
+
 type GeminiAnalysisState = {
   status: GeminiAnalysisStatus
   data: GeminiAnalysisResponse | null
@@ -19,6 +23,22 @@ function isGeminiAnalysisResponse(value: unknown): value is GeminiAnalysisRespon
     typeof v.confidence === "number" &&
     (typeof v.warning === "string" || v.warning === null)
   )
+}
+
+function extractApiErrorMessage(status: number, textBody: string): string {
+  // Prefer structured JSON errors from our /api/analyze.
+  try {
+    const parsed = JSON.parse(textBody) as any
+    if (parsed?.code === "GEMINI_RATE_LIMIT") return RATE_LIMIT_ERROR_MESSAGE
+    if (typeof parsed?.error === "string" && parsed.error.trim().length > 0) {
+      return parsed.error
+    }
+  } catch {
+    // ignore
+  }
+
+  if (status === 429) return RATE_LIMIT_ERROR_MESSAGE
+  return textBody.trim().length > 0 ? textBody : FALLBACK_ERROR_MESSAGE
 }
 
 export function useGeminiAnalysis() {
@@ -46,9 +66,8 @@ export function useGeminiAnalysis() {
 
       if (!res.ok) {
         const text = await res.text().catch(() => "")
-        throw new Error(
-          `Analyze failed (${res.status}). ${text ? `Details: ${text}` : ""}`.trim(),
-        )
+        const message = extractApiErrorMessage(res.status, text)
+        throw new Error(message)
       }
 
       const json = (await res.json()) as unknown
@@ -59,8 +78,7 @@ export function useGeminiAnalysis() {
       setState({ status: "success", data: json, errorMessage: null })
       return json
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "이미지 분석에 실패했습니다."
+      const message = error instanceof Error ? error.message : FALLBACK_ERROR_MESSAGE
       setState({ status: "error", data: null, errorMessage: message })
       return null
     }
