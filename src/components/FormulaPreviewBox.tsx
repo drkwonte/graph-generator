@@ -1,5 +1,4 @@
 import { BlockMath } from "react-katex"
-import "katex/dist/katex.min.css"
 
 import { Separator } from "@/components/ui/separator"
 import type { GeminiFormula } from "@/types/gemini"

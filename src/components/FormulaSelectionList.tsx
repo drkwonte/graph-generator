@@ -1,5 +1,4 @@
 import { BlockMath } from "react-katex"
-import "katex/dist/katex.min.css"
 
 import { Checkbox } from "@/components/ui/checkbox"
 import { Separator } from "@/components/ui/separator"
