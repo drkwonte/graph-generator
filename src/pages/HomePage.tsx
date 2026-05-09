@@ -15,7 +15,6 @@ import { GRAPH_VIEW_WIDTH_PERCENT } from "@/constants/ui"
 import { useGraphExport } from "@/hooks/useGraphExport"
 import { useGraphPrint } from "@/hooks/useGraphPrint"
 import {
-  FUNCTION_PLOT_AXIS_INFINITY,
   GRAPH_COLORS,
   PRINT_GRAPH_BUTTON_TEXT,
 } from "@/constants/graph"
@@ -76,14 +75,9 @@ export function HomePage() {
         parseVerticalLineX(formula.latex)
 
       if (verticalX !== null) {
-        const span = FUNCTION_PLOT_AXIS_INFINITY
         return {
-          fnType: "points" as const,
           fn: `x=${verticalX}`,
-          points: [
-            [verticalX, -span],
-            [verticalX, span],
-          ] as [number, number][],
+          annotationX: verticalX,
           color,
         }
       }

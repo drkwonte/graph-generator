@@ -43,10 +43,11 @@ function injectLightSvgStyle(svg: SVGSVGElement) {
 export type GraphFunction = {
   fn: string
   color?: string
-  fnType?: "linear" | "implicit" | "points"
-  /** Required when `fnType` is `"points"` (two or more `[x, y]` samples in math space). */
-  points?: [number, number][]
-  skipBoundsCheck?: boolean
+  fnType?: "linear" | "implicit"
+  /**
+   * Render a full-height vertical line at x (uses function-plot `annotations` to avoid broken/clipped segments).
+   */
+  annotationX?: number
 }
 
 export type GraphRendererProps = {
@@ -87,9 +88,7 @@ type FunctionPlotDatum = {
   fn: string
   color?: string
   graphType?: "polyline"
-  fnType?: "linear" | "implicit" | "points"
-  points?: [number, number][]
-  skipBoundsCheck?: boolean
+  fnType?: "linear" | "implicit"
 }
 
 type FunctionPlotOptions = {
@@ -98,6 +97,7 @@ type FunctionPlotOptions = {
   height: number
   grid: boolean
   data: FunctionPlotDatum[]
+  annotations?: { x?: number; y?: number; text?: string }[]
 }
 
 export function GraphRenderer({
@@ -149,29 +149,45 @@ export function GraphRenderer({
           ? height || width
           : (heightPx ?? GRAPH_DEFAULT_HEIGHT_PX)
 
+        const annotationItems = functions
+          .map((f) => {
+            if (typeof f.annotationX !== "number" || !Number.isFinite(f.annotationX)) return null
+            return {
+              x: f.annotationX,
+              text: "",
+              _stroke: f.color,
+            }
+          })
+          .filter((v) => v !== null)
+
         functionPlot({
           target: el,
           width,
           height: computedHeightPx,
           grid: true,
-          data: functions.map((f, idx) => {
-            const datum: FunctionPlotDatum = {
-              fn: f.fn,
-              color: f.color ?? GRAPH_COLORS[idx % GRAPH_COLORS.length],
-              graphType: "polyline",
-              fnType: f.fnType ?? "linear",
-            }
-            if (f.fnType === "points" && f.points?.length) {
-              datum.points = f.points
-              datum.skipBoundsCheck = f.skipBoundsCheck ?? true
-            }
-            return datum
-          }),
+          annotations: annotationItems.map(({ x, text }) => ({ x, text })),
+          data: functions.map((f, idx) => ({
+            fn: f.fn,
+            color: f.color ?? GRAPH_COLORS[idx % GRAPH_COLORS.length],
+            graphType: "polyline",
+            fnType: f.fnType ?? "linear",
+          })),
         })
 
         const svg = el.querySelector("svg")
         if (svg instanceof SVGSVGElement) {
           injectLightSvgStyle(svg)
+
+          // Style annotations (function-plot defaults to '#eee', which is too light on white).
+          const annotationGroups = svg.querySelectorAll("g.annotations")
+          annotationGroups.forEach((g, index) => {
+            const stroke = annotationItems[index]?._stroke
+            const path = g.querySelector("path")
+            if (path && stroke) {
+              path.setAttribute("stroke", stroke)
+              path.setAttribute("stroke-width", "2")
+            }
+          })
         }
 
         // Clear any previous error only after a successful render.
