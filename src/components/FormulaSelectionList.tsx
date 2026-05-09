@@ -1,5 +1,3 @@
-import "katex/dist/katex.min.css"
-
 import { Checkbox } from "@/components/ui/checkbox"
 import { Separator } from "@/components/ui/separator"
 import type { GeminiFormula } from "@/types/gemini"

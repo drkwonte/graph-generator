@@ -1,17 +1,16 @@
-import { BlockMath, InlineMath } from "react-katex"
+import * as React from "react"
 import katex from "katex"
 
 import { sanitizeLatex } from "@/lib/sanitizeLatex"
 
-const KATEX_THROW_ON_ERROR = true as const
-const KATEX_DISPLAY_MODE_BLOCK = true as const
-const KATEX_DISPLAY_MODE_INLINE = false as const
+const KATEX_STRICT_IGNORE = "ignore" as const
 
-function isValidKatex(input: string, displayMode: boolean): boolean {
+function isValidKatexString(tex: string, displayMode: boolean): boolean {
   try {
-    katex.renderToString(input, {
+    katex.renderToString(tex, {
       displayMode,
-      throwOnError: KATEX_THROW_ON_ERROR,
+      throwOnError: true,
+      strict: KATEX_STRICT_IGNORE,
     })
     return true
   } catch {
@@ -19,23 +18,50 @@ function isValidKatex(input: string, displayMode: boolean): boolean {
   }
 }
 
-function chooseBestLatex(input: string, displayMode: boolean): string {
-  const trimmed = (input ?? "").trim()
-  if (trimmed.length === 0) return ""
+function chooseBestLatex(raw: string, displayMode: boolean): string {
+  const trimmed = raw.trim()
+  if (!trimmed) return ""
 
-  if (isValidKatex(trimmed, displayMode)) return trimmed
+  if (isValidKatexString(trimmed, displayMode)) return trimmed
 
   const sanitized = sanitizeLatex(trimmed)
-  if (isValidKatex(sanitized, displayMode)) return sanitized
+  if (isValidKatexString(sanitized, displayMode)) return sanitized
 
   return trimmed
 }
 
+function renderKatexHtml(tex: string, displayMode: boolean): string {
+  return katex.renderToString(tex, {
+    displayMode,
+    throwOnError: false,
+    strict: KATEX_STRICT_IGNORE,
+  })
+}
+
+type KatexSpanProps = {
+  math: string
+  displayMode: boolean
+  className?: string
+}
+
+function KatexSpan({ math, displayMode, className }: KatexSpanProps) {
+  const html = React.useMemo(() => {
+    const tex = chooseBestLatex(math, displayMode)
+    if (!tex) return ""
+    return renderKatexHtml(tex, displayMode)
+  }, [math, displayMode])
+
+  if (!html) return null
+
+  return (
+    <span className={className} dangerouslySetInnerHTML={{ __html: html }} />
+  )
+}
+
 export function SafeBlockMath({ math }: { math: string }) {
-  return <BlockMath math={chooseBestLatex(math, KATEX_DISPLAY_MODE_BLOCK)} />
+  return <KatexSpan math={math} displayMode />
 }
 
 export function SafeInlineMath({ math }: { math: string }) {
-  return <InlineMath math={chooseBestLatex(math, KATEX_DISPLAY_MODE_INLINE)} />
+  return <KatexSpan math={math} displayMode={false} />
 }
-
