@@ -38,13 +38,9 @@ export function HomePage() {
   const { downloadPng, errorMessage: exportError } = useGraphExport(exportAreaRef)
   const { printGraph, errorMessage: printError } = useGraphPrint(exportAreaRef)
 
-  React.useEffect(() => {
-    if (!data?.formulas?.length) {
-      setSelectedFormulaIndices([])
-      return
-    }
-    setSelectedFormulaIndices(data.formulas.map((_, idx) => idx))
-  }, [data])
+  const computeAllSelectedIndices = React.useCallback((count: number) => {
+    return Array.from({ length: count }, (_, idx) => idx)
+  }, [])
 
   return (
     <div className="space-y-6">
@@ -76,7 +72,11 @@ export function HomePage() {
                 disabled={!imageBlob || isAnalyzing}
                 onClick={() => {
                   if (!imageBlob) return
-                  void analyzeImage(imageBlob)
+                  void analyzeImage(imageBlob).then((result) => {
+                    const next =
+                      result?.formulas?.length ? computeAllSelectedIndices(result.formulas.length) : []
+                    setSelectedFormulaIndices(next)
+                  })
                 }}
               >
                 {isAnalyzing

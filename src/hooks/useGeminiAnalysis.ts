@@ -15,23 +15,27 @@ type GeminiAnalysisState = {
 }
 
 function isGeminiAnalysisResponse(value: unknown): value is GeminiAnalysisResponse {
-  const v = value as any
+  if (!value || typeof value !== "object") return false
+  const v = value as Record<string, unknown>
+  const formulas = v.formulas
+  const confidence = v.confidence
+  const warning = v.warning
+
   return (
-    !!v &&
-    typeof v === "object" &&
-    Array.isArray(v.formulas) &&
-    typeof v.confidence === "number" &&
-    (typeof v.warning === "string" || v.warning === null)
+    Array.isArray(formulas) &&
+    typeof confidence === "number" &&
+    (typeof warning === "string" || warning === null)
   )
 }
 
 function extractApiErrorMessage(status: number, textBody: string): string {
   // Prefer structured JSON errors from our /api/analyze.
   try {
-    const parsed = JSON.parse(textBody) as any
-    if (parsed?.code === "GEMINI_RATE_LIMIT") return RATE_LIMIT_ERROR_MESSAGE
-    if (typeof parsed?.error === "string" && parsed.error.trim().length > 0) {
-      return parsed.error
+    const parsed = JSON.parse(textBody) as unknown
+    if (parsed && typeof parsed === "object") {
+      const rec = parsed as Record<string, unknown>
+      if (rec.code === "GEMINI_RATE_LIMIT") return RATE_LIMIT_ERROR_MESSAGE
+      if (typeof rec.error === "string" && rec.error.trim().length > 0) return rec.error
     }
   } catch {
     // ignore

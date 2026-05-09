@@ -58,13 +58,39 @@ function clearElement(el: HTMLElement) {
 }
 
 async function loadFunctionPlot() {
-  const mod = (await import("function-plot")) as any
-  const candidates = [mod, mod?.default, mod?.default?.default]
-  const functionPlot = candidates.find((c) => typeof c === "function")
+  const mod = (await import("function-plot")) as unknown
+
+  const maybeModules: unknown[] = [mod]
+  if (mod && typeof mod === "object") {
+    const modRec = mod as Record<string, unknown>
+    maybeModules.push(modRec.default)
+    const def = modRec.default
+    if (def && typeof def === "object") {
+      maybeModules.push((def as Record<string, unknown>).default)
+    }
+  }
+
+  const functionPlot = maybeModules.find((c): c is (options: FunctionPlotOptions) => unknown =>
+    typeof c === "function",
+  )
   if (typeof functionPlot !== "function") {
     throw new Error("function-plot import failed: expected a function export.")
   }
-  return functionPlot as (options: any) => unknown
+  return functionPlot
+}
+
+type FunctionPlotDatum = {
+  fn: string
+  color?: string
+  graphType?: "polyline"
+}
+
+type FunctionPlotOptions = {
+  target: HTMLElement
+  width: number
+  height: number
+  grid: boolean
+  data: FunctionPlotDatum[]
 }
 
 export function GraphRenderer({
@@ -94,7 +120,7 @@ export function GraphRenderer({
 
     observer.observe(el)
     return () => observer.disconnect()
-  }, [])
+  }, [containerRef])
 
   React.useEffect(() => {
     const el = containerRef.current
@@ -103,7 +129,6 @@ export function GraphRenderer({
     if (isSquare && height <= 0) return
 
     clearElement(el)
-    setRenderError(null)
 
     if (functions.length === 0) return
 
@@ -133,6 +158,9 @@ export function GraphRenderer({
         if (svg instanceof SVGSVGElement) {
           injectLightSvgStyle(svg)
         }
+
+        // Clear any previous error only after a successful render.
+        setRenderError(null)
       } catch (error) {
         if (cancelled) return
         const message =
@@ -144,7 +172,7 @@ export function GraphRenderer({
     return () => {
       cancelled = true
     }
-  }, [functions, height, heightPx, isSquare, width])
+  }, [containerRef, functions, height, heightPx, isSquare, width])
 
   return (
     <div

@@ -76,8 +76,35 @@ function toBase64(bytes: Uint8Array) {
 }
 
 function extractJsonTextFromGeminiResponse(geminiResponse: unknown): string {
+  if (!geminiResponse || typeof geminiResponse !== "object") {
+    throw new Error("Gemini response was not an object.")
+  }
+
+  const candidates = (geminiResponse as Record<string, unknown>).candidates
+  if (!Array.isArray(candidates) || candidates.length === 0) {
+    throw new Error("Gemini response did not contain candidates.")
+  }
+
+  const first = candidates[0]
+  if (!first || typeof first !== "object") {
+    throw new Error("Gemini response candidate was not an object.")
+  }
+
+  const content = (first as Record<string, unknown>).content
+  if (!content || typeof content !== "object") {
+    throw new Error("Gemini response candidate had no content.")
+  }
+
+  const parts = (content as Record<string, unknown>).parts
+  if (!Array.isArray(parts) || parts.length === 0) {
+    throw new Error("Gemini response content had no parts.")
+  }
+
+  const part0 = parts[0]
   const candidateText =
-    (geminiResponse as any)?.candidates?.[0]?.content?.parts?.[0]?.text
+    part0 && typeof part0 === "object"
+      ? (part0 as Record<string, unknown>).text
+      : undefined
 
   if (typeof candidateText !== "string" || candidateText.trim().length === 0) {
     throw new Error("Gemini response did not contain candidate text.")
