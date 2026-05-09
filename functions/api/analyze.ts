@@ -26,7 +26,8 @@ Return ONLY a valid JSON object:
 }
 
 Rules:
-- latex: standard LaTeX notation for display
+- latex & displayLatex: standard LaTeX, raw only (no surrounding $...$, $$...$$, \\[...\\], or \\(...\\);
+  the client renders math mode separately.
 - functionNotation: MUST be a valid expression for function-plot's built-in parser (built-in-math-eval).
   Use only: numbers, x, parentheses, + - * / ^, and common functions like
   sin(), cos(), tan(), asin(), acos(), atan(), abs(), sqrt(), exp(), pow(), log().

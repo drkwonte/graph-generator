@@ -20,16 +20,15 @@ function isValidKatex(input: string, displayMode: boolean): boolean {
 }
 
 function chooseBestLatex(input: string, displayMode: boolean): string {
-  const original = input ?? ""
-  if (original.trim().length === 0) return ""
+  const trimmed = (input ?? "").trim()
+  if (trimmed.length === 0) return ""
 
-  if (isValidKatex(original, displayMode)) return original
+  if (isValidKatex(trimmed, displayMode)) return trimmed
 
-  const sanitized = sanitizeLatex(original)
-  if (sanitized !== original && isValidKatex(sanitized, displayMode)) return sanitized
+  const sanitized = sanitizeLatex(trimmed)
+  if (isValidKatex(sanitized, displayMode)) return sanitized
 
-  // Fall back to original to avoid hiding unexpected issues.
-  return original
+  return trimmed
 }
 
 export function SafeBlockMath({ math }: { math: string }) {
