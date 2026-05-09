@@ -5,9 +5,9 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { ROUTES } from "@/constants/routes"
 import { AboutPage } from "@/pages/AboutPage"
 import { ContactPage } from "@/pages/ContactPage"
+import { GuidePage } from "@/pages/GuidePage"
 import { HomePage } from "@/pages/HomePage"
 import { PrivacyPolicyPage } from "@/pages/PrivacyPolicyPage"
-import { UserGuidePage } from "@/pages/UserGuidePage"
 
 function App() {
   return (
@@ -33,7 +33,7 @@ function App() {
           path={ROUTES.guide}
           element={
             <AppShell>
-              <UserGuidePage />
+              <GuidePage />
             </AppShell>
           }
         />

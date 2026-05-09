@@ -3,7 +3,7 @@ import * as React from "react"
 import { DEFAULT_DOCUMENT_TITLE, DEFAULT_META_DESCRIPTION } from "@/constants/seo"
 
 function getOrCreateMetaDescription(): HTMLMetaElement {
-  let meta = document.querySelector('meta[name="description"]')
+  const meta = document.querySelector('meta[name="description"]')
   if (meta instanceof HTMLMetaElement) return meta
   const created = document.createElement("meta")
   created.setAttribute("name", "description")

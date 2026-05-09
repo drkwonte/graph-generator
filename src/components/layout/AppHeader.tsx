@@ -6,7 +6,7 @@ import { ROUTES } from "@/constants/routes"
 const APP_NAME = "SnapGraph" as const
 const HEADER_LOGO_SRC = "/graph_logo.png" as const
 const HEADER_LOGO_ALT = `${APP_NAME} 로고` as const
-const HEADER_LINK_GUIDE = "사용설명서" as const
+const HEADER_GUIDE_LINK_TEXT = "사용설명서" as const
 
 export function AppHeader() {
   return (
@@ -32,7 +32,7 @@ export function AppHeader() {
             to={ROUTES.guide}
             className="rounded-md px-2 py-1 text-sm text-muted-foreground outline-none ring-offset-background transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
           >
-            {HEADER_LINK_GUIDE}
+            {HEADER_GUIDE_LINK_TEXT}
           </Link>
           <ModeToggle />
         </div>
