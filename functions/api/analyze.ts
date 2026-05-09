@@ -27,6 +27,8 @@ Return ONLY a valid JSON object:
 
 Rules:
 - latex: standard LaTeX notation for display
+- IMPORTANT (JSON escaping): In JSON strings, backslash must be escaped.
+  For LaTeX commands like \\frac, \\sqrt, \\tan, \\pi, ALWAYS output double backslashes (e.g. "\\\\frac{1}{2}").
 - functionNotation: MUST be a valid expression for function-plot's built-in parser (built-in-math-eval).
   Use only: numbers, x, parentheses, + - * / ^, and common functions like
   sin(), cos(), tan(), asin(), acos(), atan(), abs(), sqrt(), exp(), pow(), log().
@@ -81,7 +83,29 @@ function parseGeminiJson(jsonText: string): GeminiAnalysisResponse {
     throw new Error("Gemini JSON output is missing 'formulas' array.")
   }
 
+  // Fix JSON escape collisions: Gemini may output LaTeX like "\frac" which JSON parses as
+  // "\f" (formfeed). Same issue for "\tan" -> "\t" (tab), "\nabla" -> "\n" (newline), etc.
+  // We restore a minimal set so KaTeX receives valid LaTeX.
+  for (const f of parsed.formulas) {
+    if (typeof f?.latex === "string") f.latex = restoreLatexFromControlEscapes(f.latex)
+    if (typeof f?.displayLatex === "string")
+      f.displayLatex = restoreLatexFromControlEscapes(f.displayLatex)
+  }
+
   return parsed
+}
+
+function restoreLatexFromControlEscapes(input: string) {
+  // Order matters: handle longest / most specific sequences first.
+  return input
+    // \frac (JSON: \f + "rac")
+    .replace(/\f\s*rac/g, "\\\\frac")
+    // \tan (JSON: \t + "an")
+    .replace(/\t\s*an/g, "\\\\tan")
+    // \nabla (JSON: \n + "abla")
+    .replace(/\n\s*abla/g, "\\\\nabla")
+    // Drop stray carriage returns if any
+    .replace(/\r/g, "")
 }
 
 export const onRequestPost: PagesFunction<CloudflarePagesEnv> = async (ctx) => {
