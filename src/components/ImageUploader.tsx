@@ -17,6 +17,22 @@ const PREVIEW_PLACEHOLDER_TEXT =
 const PASTE_HELP_TEXT = "또는 이 영역을 클릭한 뒤 Ctrl+V로 클립보드 이미지를 붙여넣을 수 있어요." as const
 const CLIPBOARD_FILENAME = "clipboard-image.png" as const
 const CAMERA_FILENAME = "camera-capture.png" as const
+const CAMERA_VIDEO_NOT_READY_MESSAGE =
+  "카메라 영상이 아직 준비되지 않았습니다. 잠시 기다린 뒤 촬영을 눌러주세요." as const
+
+async function requestCameraStream(): Promise<MediaStream> {
+  if (!navigator.mediaDevices?.getUserMedia) {
+    throw new Error("이 브라우저에서는 카메라 촬영을 지원하지 않습니다.")
+  }
+  try {
+    return await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: "environment" } },
+      audio: false,
+    })
+  } catch {
+    return await navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+  }
+}
 
 export type ImageUploaderResult = {
   originalFile: File
@@ -39,6 +55,7 @@ export function ImageUploader({ onReady }: ImageUploaderProps) {
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null)
   const [isCameraOpen, setIsCameraOpen] = React.useState(false)
   const [cameraStream, setCameraStream] = React.useState<MediaStream | null>(null)
+  const [isCameraVideoReady, setIsCameraVideoReady] = React.useState(false)
 
   React.useEffect(() => {
     return () => {
@@ -51,6 +68,37 @@ export function ImageUploader({ onReady }: ImageUploaderProps) {
       cameraStream?.getTracks().forEach((t) => t.stop())
     }
   }, [cameraStream])
+
+  React.useLayoutEffect(() => {
+    if (!isCameraOpen || !cameraStream) return
+
+    const video = videoRef.current
+    if (!video) return
+
+    setIsCameraVideoReady(false)
+    video.srcObject = cameraStream
+    video.muted = true
+
+    const onLoadedMetadata = () => {
+      setIsCameraVideoReady(true)
+    }
+    video.addEventListener("loadedmetadata", onLoadedMetadata)
+
+    void video.play().catch(() => {
+      setErrorMessage("카메라 미리보기를 재생할 수 없습니다. 브라우저 설정을 확인해주세요.")
+      video.removeEventListener("loadedmetadata", onLoadedMetadata)
+      video.srcObject = null
+      cameraStream.getTracks().forEach((t) => t.stop())
+      setCameraStream(null)
+      setIsCameraOpen(false)
+    })
+
+    return () => {
+      video.removeEventListener("loadedmetadata", onLoadedMetadata)
+      video.srcObject = null
+      setIsCameraVideoReady(false)
+    }
+  }, [isCameraOpen, cameraStream])
 
   async function handleClipboardImage(blob: Blob) {
     const file = new File([blob], CLIPBOARD_FILENAME, {
@@ -116,29 +164,19 @@ export function ImageUploader({ onReady }: ImageUploaderProps) {
   async function openCamera() {
     if (isWorking) return
     setErrorMessage(null)
+    setIsCameraVideoReady(false)
 
+    let stream: MediaStream | null = null
     try {
-      if (!navigator.mediaDevices?.getUserMedia) {
-        throw new Error("이 브라우저에서는 카메라 촬영을 지원하지 않습니다.")
-      }
-
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
-        audio: false,
-      })
+      stream = await requestCameraStream()
       setCameraStream(stream)
       setIsCameraOpen(true)
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-        await videoRef.current.play()
-      }
     } catch (error) {
+      stream?.getTracks().forEach((t) => t.stop())
       const message =
         error instanceof Error ? error.message : "카메라를 여는 데 실패했습니다."
       setErrorMessage(message)
       setIsCameraOpen(false)
-      cameraStream?.getTracks().forEach((t) => t.stop())
       setCameraStream(null)
     }
   }
@@ -147,6 +185,7 @@ export function ImageUploader({ onReady }: ImageUploaderProps) {
     cameraStream?.getTracks().forEach((t) => t.stop())
     setCameraStream(null)
     setIsCameraOpen(false)
+    setIsCameraVideoReady(false)
   }
 
   async function captureFromCamera() {
@@ -155,10 +194,10 @@ export function ImageUploader({ onReady }: ImageUploaderProps) {
     if (!video) return
     if (!cameraStream) return
 
-    const width = Math.max(1, video.videoWidth || 0)
-    const height = Math.max(1, video.videoHeight || 0)
-    if (width === 1 || height === 1) {
-      setErrorMessage("카메라 영상이 준비되지 않았습니다. 잠시 후 다시 시도해주세요.")
+    const width = video.videoWidth
+    const height = video.videoHeight
+    if (!width || !height) {
+      setErrorMessage(CAMERA_VIDEO_NOT_READY_MESSAGE)
       return
     }
 
@@ -232,7 +271,12 @@ export function ImageUploader({ onReady }: ImageUploaderProps) {
               {isCameraOpen ? (
                 <div className="flex h-full flex-col gap-3 bg-muted/5 p-3">
                   <div className="aspect-video w-full overflow-hidden rounded-md bg-black">
-                    <video ref={videoRef} className="h-full w-full object-cover" playsInline />
+                    <video
+                      ref={videoRef}
+                      className="h-full w-full object-cover"
+                      playsInline
+                      muted
+                    />
                   </div>
                   <div className="flex flex-wrap justify-end gap-2">
                     <Button type="button" variant="outline" onClick={closeCamera}>
@@ -242,7 +286,7 @@ export function ImageUploader({ onReady }: ImageUploaderProps) {
                       type="button"
                       variant="default"
                       onClick={() => void captureFromCamera()}
-                      disabled={isWorking}
+                      disabled={isWorking || !isCameraVideoReady}
                     >
                       {CAPTURE_BUTTON_TEXT}
                     </Button>
