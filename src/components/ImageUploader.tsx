@@ -328,7 +328,7 @@ export function ImageUploader({ onReady }: ImageUploaderProps) {
                 </div>
               ) : isPasteInstructionVisible ? (
                 <div className="flex h-full flex-col items-center justify-center gap-6 bg-background p-6">
-                  <p className="text-center text-base font-semibold text-destructive">
+                  <p className="text-center text-xs leading-relaxed text-muted-foreground/90">
                     {PASTE_FOCUS_INSTRUCTION_TEXT}
                   </p>
                   <div className="max-w-md space-y-1 text-center text-xs leading-relaxed text-muted-foreground/90">
