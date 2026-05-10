@@ -25,6 +25,9 @@ import { useDocumentSEO } from "@/hooks/useDocumentSEO"
 const CONVERT_BUTTON_TEXT = "선택한 수식 그래프로 변환" as const
 const GRAPH_PANEL_TITLE = "그래프" as const
 const NEW_GRAPH_BUTTON_TEXT = "새 그래프" as const
+/** Line break after this phrase on narrow viewports; keep “올리면” intact (no syllable split). */
+const HOME_PAGE_HERO_HEADING_LINE_1 = "수식 이미지를 올리면" as const
+const HOME_PAGE_HERO_HEADING_LINE_2 = "그래프로 변환합니다" as const
 const EMPTY_SELECTION: number[] = []
 const VERTICAL_LINE_REGEX = /x\s*=\s*([+-]?\d+(?:\.\d+)?)/i
 
@@ -99,8 +102,10 @@ export function HomePage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-balance text-2xl font-normal tracking-tight">
-          수식 이미지를 올리면 그래프로 변환합니다
+        <h1 className="text-2xl font-normal tracking-tight sm:text-balance">
+          <span className="block sm:inline">{HOME_PAGE_HERO_HEADING_LINE_1}</span>
+          <span className="hidden sm:inline"> </span>
+          <span className="block sm:inline">{HOME_PAGE_HERO_HEADING_LINE_2}</span>
         </h1>
         {graphFormulas?.length ? (
           <Button
