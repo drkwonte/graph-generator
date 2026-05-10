@@ -1,20 +1,27 @@
 import * as React from "react"
+import { Camera, ClipboardPaste, ImagePlus } from "lucide-react"
 
 import { PanelBody } from "@/components/PanelBody"
 import { PanelCard } from "@/components/PanelCard"
 import { Button } from "@/components/ui/button"
 import { HANDWRITING_WARNING_LINES, MAX_UPLOAD_SIZE_BYTES } from "@/constants/image"
 import { useImageCompressor } from "@/hooks/useImageCompressor"
+import { cn } from "@/lib/utils"
 
 const ACCEPTED_IMAGE_TYPES = "image/*" as const
 const PANEL_TITLE = "이미지 업로드" as const
-const CHOOSE_FILE_BUTTON_TEXT = "파일 선택" as const
-const OPEN_CAMERA_BUTTON_TEXT = "사진 촬영" as const
 const CAPTURE_BUTTON_TEXT = "촬영" as const
 const CLOSE_CAMERA_BUTTON_TEXT = "닫기" as const
 const PREVIEW_PLACEHOLDER_TEXT =
   "이미지를 업로드하면 이곳에 미리보기가 표시됩니다." as const
-const PASTE_HELP_TEXT = "또는 이 영역을 클릭한 뒤 Ctrl+V로 클립보드 이미지를 붙여넣을 수 있어요." as const
+const EMPTY_STATE_CHOOSE_METHOD_TEXT = "아래에서 이미지를 추가하는 방법을 선택하세요." as const
+const PASTE_FOCUS_INSTRUCTION_TEXT = "이 영역을 클릭한 후 Ctrl+v 하세요." as const
+const ARIA_CHOOSE_IMAGE_FILE = "이미지 파일 선택" as const
+const ARIA_OPEN_CAMERA = "카메라로 사진 촬영" as const
+const ARIA_SHOW_PASTE_INSTRUCTIONS = "클립보드에서 붙여넣기" as const
+const DROP_ZONE_ARIA_DEFAULT = "이미지 업로드 영역" as const
+const DROP_ZONE_ARIA_PASTE_MODE = "이미지 업로드 영역, 클릭 후 Ctrl+V로 붙여넣기" as const
+const BACK_TO_INPUT_METHODS_LABEL = "입력 방식 다시 선택" as const
 const CLIPBOARD_FILENAME = "clipboard-image.png" as const
 const CAMERA_FILENAME = "camera-capture.png" as const
 const CAMERA_VIDEO_NOT_READY_MESSAGE =
@@ -56,6 +63,7 @@ export function ImageUploader({ onReady }: ImageUploaderProps) {
   const [isCameraOpen, setIsCameraOpen] = React.useState(false)
   const [cameraStream, setCameraStream] = React.useState<MediaStream | null>(null)
   const [isCameraVideoReady, setIsCameraVideoReady] = React.useState(false)
+  const [isPasteInstructionVisible, setIsPasteInstructionVisible] = React.useState(false)
 
   React.useEffect(() => {
     return () => {
@@ -100,6 +108,25 @@ export function ImageUploader({ onReady }: ImageUploaderProps) {
     }
   }, [isCameraOpen, cameraStream])
 
+  React.useEffect(() => {
+    if (!isPasteInstructionVisible) return
+
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        e.preventDefault()
+        setIsPasteInstructionVisible(false)
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [isPasteInstructionVisible])
+
+  React.useEffect(() => {
+    if (!isPasteInstructionVisible) return
+    dropZoneRef.current?.focus()
+  }, [isPasteInstructionVisible])
+
   async function handleClipboardImage(blob: Blob) {
     const file = new File([blob], CLIPBOARD_FILENAME, {
       type: blob.type || "image/png",
@@ -139,6 +166,7 @@ export function ImageUploader({ onReady }: ImageUploaderProps) {
   }
 
   function handleChooseClick() {
+    setIsPasteInstructionVisible(false)
     fileInputRef.current?.click()
   }
 
@@ -163,6 +191,7 @@ export function ImageUploader({ onReady }: ImageUploaderProps) {
 
   async function openCamera() {
     if (isWorking) return
+    setIsPasteInstructionVisible(false)
     setErrorMessage(null)
     setIsCameraVideoReady(false)
 
@@ -231,33 +260,28 @@ export function ImageUploader({ onReady }: ImageUploaderProps) {
     focusDropZone()
   }
 
+  function showPasteInstructions(e: React.MouseEvent) {
+    e.stopPropagation()
+    setIsPasteInstructionVisible(true)
+  }
+
+  const iconButtonClassName =
+    "inline-flex size-16 shrink-0 items-center justify-center rounded-xl border-2 border-dashed border-muted-foreground/35 bg-background shadow-sm hover:border-muted-foreground/60 hover:bg-muted/40 [&_svg]:size-8"
+
   return (
     <section className="space-y-3">
-      <PanelCard
-        title={PANEL_TITLE}
-        action={
-          <>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept={ACCEPTED_IMAGE_TYPES}
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0]
-                if (file) void handleFile(file)
-              }}
-            />
-            <div className="flex items-center gap-2">
-              <Button type="button" variant="outline" onClick={handleChooseClick}>
-                {CHOOSE_FILE_BUTTON_TEXT}
-              </Button>
-              <Button type="button" variant="outline" onClick={() => void openCamera()}>
-                {OPEN_CAMERA_BUTTON_TEXT}
-              </Button>
-            </div>
-          </>
-        }
-      >
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept={ACCEPTED_IMAGE_TYPES}
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          if (file) void handleFile(file)
+          e.target.value = ""
+        }}
+      />
+      <PanelCard title={PANEL_TITLE}>
         <PanelBody
           main={
             <div
@@ -265,7 +289,9 @@ export function ImageUploader({ onReady }: ImageUploaderProps) {
               tabIndex={0}
               onPaste={handlePaste}
               className="h-full outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              aria-label="이미지 업로드 영역 (클립보드 붙여넣기 가능)"
+              aria-label={
+                isPasteInstructionVisible ? DROP_ZONE_ARIA_PASTE_MODE : DROP_ZONE_ARIA_DEFAULT
+              }
               onClick={focusDropZone}
             >
               {isCameraOpen ? (
@@ -300,11 +326,75 @@ export function ImageUploader({ onReady }: ImageUploaderProps) {
                     className="max-h-[60vh] w-full object-contain"
                   />
                 </div>
+              ) : isPasteInstructionVisible ? (
+                <div className="flex h-full flex-col items-center justify-center gap-6 bg-background p-6">
+                  <p className="text-center text-base font-semibold text-destructive">
+                    {PASTE_FOCUS_INSTRUCTION_TEXT}
+                  </p>
+                  <div className="max-w-md space-y-1 text-center text-xs leading-relaxed text-muted-foreground/90">
+                    {HANDWRITING_WARNING_LINES.map((line) => (
+                      <p key={line}>{line}</p>
+                    ))}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="xs"
+                    className="h-auto text-muted-foreground"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setIsPasteInstructionVisible(false)
+                    }}
+                  >
+                    {BACK_TO_INPUT_METHODS_LABEL}
+                  </Button>
+                </div>
               ) : (
-                <div className="flex h-full flex-col items-center justify-center gap-4 bg-background p-6 text-sm text-muted-foreground">
-                  <div className="text-center">{PREVIEW_PLACEHOLDER_TEXT}</div>
-                  <div className="text-center text-xs text-muted-foreground/90">
-                    {PASTE_HELP_TEXT}
+                <div className="flex h-full flex-col items-center justify-center gap-6 bg-background p-6 text-sm text-muted-foreground">
+                  <div className="space-y-2 text-center">
+                    <p>{PREVIEW_PLACEHOLDER_TEXT}</p>
+                    <p className="text-xs text-muted-foreground/90">{EMPTY_STATE_CHOOSE_METHOD_TEXT}</p>
+                  </div>
+                  <div
+                    className="flex flex-wrap items-center justify-center gap-6"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={cn(iconButtonClassName)}
+                      aria-label={ARIA_CHOOSE_IMAGE_FILE}
+                      disabled={isWorking}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleChooseClick()
+                      }}
+                    >
+                      <ImagePlus />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={cn(iconButtonClassName)}
+                      aria-label={ARIA_OPEN_CAMERA}
+                      disabled={isWorking}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        void openCamera()
+                      }}
+                    >
+                      <Camera />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={cn(iconButtonClassName)}
+                      aria-label={ARIA_SHOW_PASTE_INSTRUCTIONS}
+                      disabled={isWorking}
+                      onClick={showPasteInstructions}
+                    >
+                      <ClipboardPaste />
+                    </Button>
                   </div>
                   <div className="max-w-md space-y-1 text-center text-xs leading-relaxed text-muted-foreground/90">
                     {HANDWRITING_WARNING_LINES.map((line) => (

@@ -22,7 +22,7 @@ export function PanelCard({
         <div className="min-w-0">
           <CardTitle className="truncate">{title}</CardTitle>
         </div>
-        <div className="shrink-0">{action}</div>
+        {action ? <div className="shrink-0">{action}</div> : null}
       </div>
       <CardContent className="pt-4">{children}</CardContent>
     </Card>
