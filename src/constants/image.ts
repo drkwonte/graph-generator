@@ -1,3 +1,10 @@
+/** Same max height for upload preview and live camera preview so WYSIWYG with capture. */
+export const IMAGE_PREVIEW_MAX_HEIGHT_VH = 60 as const
+
+export const IMAGE_PREVIEW_MAX_HEIGHT_STYLE = {
+  maxHeight: `${IMAGE_PREVIEW_MAX_HEIGHT_VH}vh`,
+} as const
+
 export const MAX_UPLOAD_SIZE_BYTES = 1 * 1024 * 1024
 export const DEFAULT_MAX_SIZE_KB = 1024
 export const MAX_IMAGE_DIMENSION_PX = 1920

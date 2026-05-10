@@ -4,7 +4,11 @@ import { Camera, ClipboardPaste, ImagePlus } from "lucide-react"
 import { PanelBody } from "@/components/PanelBody"
 import { PanelCard } from "@/components/PanelCard"
 import { Button } from "@/components/ui/button"
-import { HANDWRITING_WARNING_LINES, MAX_UPLOAD_SIZE_BYTES } from "@/constants/image"
+import {
+  HANDWRITING_WARNING_LINES,
+  IMAGE_PREVIEW_MAX_HEIGHT_STYLE,
+  MAX_UPLOAD_SIZE_BYTES,
+} from "@/constants/image"
 import { useImageCompressor } from "@/hooks/useImageCompressor"
 import { cn } from "@/lib/utils"
 
@@ -296,10 +300,11 @@ export function ImageUploader({ onReady }: ImageUploaderProps) {
             >
               {isCameraOpen ? (
                 <div className="flex h-full flex-col gap-3 bg-muted/5 p-3">
-                  <div className="aspect-video w-full overflow-hidden rounded-md bg-black">
+                  <div className="flex w-full items-center justify-center overflow-hidden rounded-md bg-black">
                     <video
                       ref={videoRef}
-                      className="h-full w-full object-cover"
+                      className="w-full object-contain"
+                      style={IMAGE_PREVIEW_MAX_HEIGHT_STYLE}
                       playsInline
                       muted
                     />
@@ -323,7 +328,8 @@ export function ImageUploader({ onReady }: ImageUploaderProps) {
                   <img
                     src={previewUrl}
                     alt="업로드된 이미지 미리보기"
-                    className="max-h-[60vh] w-full object-contain"
+                    className="w-full object-contain"
+                    style={IMAGE_PREVIEW_MAX_HEIGHT_STYLE}
                   />
                 </div>
               ) : isPasteInstructionVisible ? (
